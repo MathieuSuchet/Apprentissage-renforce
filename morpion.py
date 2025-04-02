@@ -1,7 +1,10 @@
+import random
+
 import gymnasium as gym
 import numpy as np
 import pygame
 from gymnasium import spaces
+from observation import Observation
 
 class TicTacToeEnv(gym.Env):
     def __init__(self):
@@ -9,7 +12,7 @@ class TicTacToeEnv(gym.Env):
         self.board = np.zeros((3, 3), dtype=int)
         self.current_player = 1
         self.action_space = spaces.Discrete(9)
-        self.observation_space = spaces.Box(low=0, high=2, shape=(3, 3), dtype=int)
+        self.observation_space = spaces.Box(low=0, high=2, shape=(10, ), dtype=int)
         
         # Initialisation de Pygame
         pygame.init()
@@ -24,33 +27,33 @@ class TicTacToeEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         self.board.fill(0)
-        self.current_player = 1
-        return self.board, {}
+        self.current_player = random.randint(1, 2)
+        return Observation(self.current_player, self.board.flatten()), {}
 
     def step(self, action):
         row, col = divmod(action, 3)
-        if self.board[row, col] != 0:
-            return self.board, -10, True, False, {}
 
         self.board[row, col] = self.current_player
-        if self.check_win(self.current_player):
-            return self.board, 1, True, False, {}
+        if self.check_win(self.current_player) == 3:
+            return Observation(self.current_player, self.board.flatten()), 10, True, False, {}
         if np.all(self.board != 0):
-            return self.board, 0, True, False, {}
+            return Observation(self.current_player, self.board.flatten()), 0, True, False, {}
 
+        reward = self.check_win(self.current_player)
+        cnt_player = self.current_player
         self.current_player = 3 - self.current_player
-        return self.board, 0, False, False, {}
+
+        return Observation(cnt_player, self.board.flatten()), reward * 2, False, False, {}
 
     def check_win(self, player):
+        max_n = 0
         for row in range(3):
-            if np.all(self.board[row, :] == player):
-                return True
+            max_n = max(np.sum(self.board[row, :] == player), max_n)
         for col in range(3):
-            if np.all(self.board[:, col] == player):
-                return True
-        if np.all(np.diag(self.board) == player) or np.all(np.diag(np.fliplr(self.board)) == player):
-            return True
-        return False
+            max_n = max(np.sum(self.board[:, col] == player), max_n)
+        max_n = max(np.sum(np.diag(self.board) == player), max_n)
+        max_n = max(np.sum(np.diag(np.fliplr(self.board)) == player), max_n)
+        return max_n
 
     def render(self):
         self.screen.fill(self.YELLOW)
