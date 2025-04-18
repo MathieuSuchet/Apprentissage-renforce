@@ -2,7 +2,7 @@ import os
 import pathlib
 import pickle
 import random
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 
 import numpy as np
 
@@ -66,11 +66,11 @@ class Learner:
             raise FileNotFoundError(f"Impossible d'ouvrir le fichier {path}")
 
 
-    def save(self, path: str | pathlib.Path):
+    def save(self, path: Union[str, pathlib.Path]):
         path = pathlib.Path(path)
         self._save_table(path)
 
-    def load(self, path: str | pathlib.Path):
+    def load(self, path: Union[str, pathlib.Path]):
         path = pathlib.Path(path)
         self._load_table(path)
         

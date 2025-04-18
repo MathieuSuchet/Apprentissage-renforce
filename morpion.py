@@ -29,21 +29,43 @@ class TicTacToeEnv(gym.Env):
         self.board.fill(0)
         self.current_player = random.randint(1, 2)
         return Observation(self.current_player, self.board.flatten()), {}
-
+        
     def step(self, action):
         row, col = divmod(action, 3)
 
+        if self.board[row, col] != 0:
+            return Observation(self.current_player, self.board.flatten()), -10, True, False, {}
+
         self.board[row, col] = self.current_player
+
+        # Vérifier victoire
         if self.check_win(self.current_player) == 3:
             return Observation(self.current_player, self.board.flatten()), 10, True, False, {}
+
+        # Vérifier égalité
         if np.all(self.board != 0):
-            return Observation(self.current_player, self.board.flatten()), 0, True, False, {}
+            return Observation(self.current_player, self.board.flatten()), 1, True, False, {}
 
-        reward = self.check_win(self.current_player)
-        cnt_player = self.current_player
-        self.current_player = 3 - self.current_player
+        # Récompense stratégique :
+        reward = 0
 
-        return Observation(cnt_player, self.board.flatten()), reward * 2, False, False, {}
+        # Bonus si le joueur crée une ligne de 2 (pré-victoire)
+        if self.check_win(self.current_player) == 2:
+            reward += 0.5
+
+        # Bonus s’il bloque l’adversaire
+        opponent = 3 - self.current_player
+        self.board[row, col] = 0  # temporairement annuler le coup
+        self.board[row, col] = opponent
+        if self.check_win(opponent) == 2:
+            reward += 0.5
+        self.board[row, col] = self.current_player  # rétablir
+
+        # Continuer le jeu
+        self.current_player = opponent
+        return Observation(opponent, self.board.flatten()), reward, False, False, {}
+
+
 
     def check_win(self, player):
         max_n = 0
